@@ -9,8 +9,11 @@ const Navbar: React.FC = () => {
   const navLinks = [
     { name: 'דף הבית', path: '/' },
     { name: 'יעדים', path: '/destinations' },
+    { name: 'חבילות וחופשות', path: '/packages' },
+    { name: 'מלונות', path: '/hotels' },
     { name: 'אודות', path: '/about' },
     { name: 'צור קשר', path: '/contact' },
+    { name: 'ממשק מנהל', path: '/admin' },
   ];
 
   const isActive = (path: string) => location.pathname === path;

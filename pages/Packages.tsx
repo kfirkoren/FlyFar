@@ -1,15 +1,26 @@
-import React, { useState } from 'react';
-import { TripType } from '../types';
-import { PACKAGES } from '../constants';
+import React, { useEffect, useState } from 'react';
+import { TripType, Package } from '../types';
 import { CheckCircle, Clock, DollarSign } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { loadPackages, PACKAGES_STORAGE_KEY } from '../services/packageStorage';
 
 const Packages: React.FC = () => {
-  const [filter, setFilter] = useState<TripType | 'הכל'>('הכל');
+  const [filter, setFilter] = useState<TripType>(TripType.ALL);
+  const [packages, setPackages] = useState<Package[]>(() => loadPackages());
 
-  const filteredPackages = filter === 'הכל' 
-    ? PACKAGES 
-    : PACKAGES.filter(p => p.type === filter);
+  useEffect(() => {
+    const syncFromStorage = (event: StorageEvent) => {
+      if (event.key === PACKAGES_STORAGE_KEY) {
+        setPackages(loadPackages());
+      }
+    };
+    window.addEventListener('storage', syncFromStorage);
+    return () => window.removeEventListener('storage', syncFromStorage);
+  }, []);
+
+  const filteredPackages = filter === TripType.ALL 
+    ? packages 
+    : packages.filter(p => p.type === filter);
 
   return (
     <div className="pt-8 pb-16 bg-gray-50 min-h-screen">
@@ -27,7 +38,7 @@ const Packages: React.FC = () => {
           {[TripType.ALL, TripType.COUPLES, TripType.FAMILIES, TripType.YOUNG].map((type) => (
             <button
               key={type}
-              onClick={() => setFilter(type as any)}
+              onClick={() => setFilter(type)}
               className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${
                 filter === type 
                   ? 'bg-brand-blue text-white shadow-lg transform scale-105 ring-2 ring-offset-2 ring-brand-blue' 

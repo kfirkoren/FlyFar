@@ -7,6 +7,9 @@ import Home from './pages/Home';
 import Destinations from './pages/Destinations';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import Packages from './pages/Packages';
+import AdminPackages from './pages/AdminPackages';
+import Hotels from './pages/Hotels';
 
 const App: React.FC = () => {
   return (
@@ -17,6 +20,9 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/destinations" element={<Destinations />} />
+            <Route path="/packages" element={<Packages />} />
+            <Route path="/hotels" element={<Hotels />} />
+            <Route path="/admin" element={<AdminPackages />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
           </Routes>

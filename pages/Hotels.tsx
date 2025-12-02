@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { HOTELS } from '../constants';
 import { Link } from 'react-router-dom';
 import { Star } from 'lucide-react';
+import { Hotel } from '../types';
+import { loadHotels, HOTELS_STORAGE_KEY } from '../services/hotelStorage';
 
 const Hotels: React.FC = () => {
+  const [hotels, setHotels] = useState<Hotel[]>(() => loadHotels());
+
+  useEffect(() => {
+    const syncFromStorage = (event: StorageEvent) => {
+      if (event.key === HOTELS_STORAGE_KEY) {
+        setHotels(loadHotels());
+      }
+    };
+    window.addEventListener('storage', syncFromStorage);
+    return () => window.removeEventListener('storage', syncFromStorage);
+  }, []);
+
   return (
     <div className="bg-gray-50 min-h-screen py-12">
       <div className="max-w-7xl mx-auto px-4">
@@ -13,7 +27,7 @@ const Hotels: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {HOTELS.map((hotel) => (
+          {hotels.map((hotel) => (
             <div key={hotel.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition group">
               <div className="h-56 relative">
                 <img src={hotel.image} alt={hotel.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />

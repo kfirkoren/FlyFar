@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { DESTINATIONS } from '../constants';
 import { Link } from 'react-router-dom';
 import { MapPin, Calendar } from 'lucide-react';
+import { Destination } from '../types';
+import { loadDestinations, DESTINATIONS_STORAGE_KEY } from '../services/destinationStorage';
 
 const Destinations: React.FC = () => {
+  const [destinations, setDestinations] = useState<Destination[]>(() => loadDestinations());
+
+  useEffect(() => {
+    const syncFromStorage = (event: StorageEvent) => {
+      if (event.key === DESTINATIONS_STORAGE_KEY) {
+        setDestinations(loadDestinations());
+      }
+    };
+    window.addEventListener('storage', syncFromStorage);
+    return () => window.removeEventListener('storage', syncFromStorage);
+  }, []);
+
   return (
     <div className="bg-white min-h-screen">
       <div className="relative bg-brand-blue py-24">
@@ -18,7 +32,7 @@ const Destinations: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-16">
         <div className="space-y-16">
-          {DESTINATIONS.map((dest, index) => (
+          {destinations.map((dest, index) => (
             <div key={dest.id} className={`flex flex-col md:flex-row gap-8 items-center ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
               <div className="w-full md:w-1/2 h-80 md:h-[400px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white ring-4 ring-gray-100">
                 <img src={dest.image} alt={dest.name} className="w-full h-full object-cover hover:scale-105 transition duration-700" />
