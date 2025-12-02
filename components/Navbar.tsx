@@ -13,7 +13,6 @@ const Navbar: React.FC = () => {
     { name: 'מלונות', path: '/hotels' },
     { name: 'אודות', path: '/about' },
     { name: 'צור קשר', path: '/contact' },
-    { name: 'ממשק מנהל', path: '/admin' },
   ];
 
   const isActive = (path: string) => location.pathname === path;

@@ -6,6 +6,11 @@ import { loadHotels, saveHotels, resetHotelsToDefaults } from '../services/hotel
 import { loadDestinations, saveDestinations, resetDestinationsToDefaults } from '../services/destinationStorage';
 import { PACKAGES, HOTELS, DESTINATIONS } from '../constants';
 
+const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+const ADMIN_USER = import.meta.env.VITE_ADMIN_USER || 'admin';
+const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || 'admin123';
+const AUTH_KEY = 'afim-rahok-admin-auth';
+
 const emptyPackageForm = {
   title: '',
   description: '',
@@ -40,6 +45,9 @@ type DestinationFormState = typeof emptyDestinationForm;
 type DestinationFormField = keyof DestinationFormState;
 
 const AdminPackages: React.FC = () => {
+  const [isAuthed, setIsAuthed] = useState<boolean>(() => (isBrowser() ? localStorage.getItem(AUTH_KEY) === '1' : false));
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginError, setLoginError] = useState('');
   const [packages, setPackages] = useState<Package[]>(() => loadPackages());
   const [hotels, setHotels] = useState<Hotel[]>(() => loadHotels());
   const [destinations, setDestinations] = useState<Destination[]>(() => loadDestinations());
@@ -58,6 +66,27 @@ const AdminPackages: React.FC = () => {
   useEffect(() => {
     saveDestinations(destinations);
   }, [destinations]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const isValid = loginForm.username === ADMIN_USER && loginForm.password === ADMIN_PASS;
+    if (isValid) {
+      setIsAuthed(true);
+      setLoginError('');
+      if (isBrowser()) {
+        localStorage.setItem(AUTH_KEY, '1');
+      }
+    } else {
+      setLoginError('שם משתמש או סיסמה שגויים');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthed(false);
+    if (isBrowser()) {
+      localStorage.removeItem(AUTH_KEY);
+    }
+  };
 
   const handlePackageChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -173,13 +202,74 @@ const AdminPackages: React.FC = () => {
     resetDestinationsToDefaults();
   };
 
+  if (!isAuthed) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-md border border-gray-200 space-y-6">
+          <div className="flex items-center gap-3">
+            <PlusCircle className="text-brand-blue" />
+            <div>
+              <h1 className="text-2xl font-black text-gray-900">כניסה לממשק מנהל</h1>
+              <p className="text-gray-500 text-sm">נא להזין שם משתמש וסיסמה</p>
+            </div>
+          </div>
+
+          <form className="space-y-4" onSubmit={handleLogin}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">שם משתמש</label>
+              <input
+                type="text"
+                value={loginForm.username}
+                onChange={(e) => setLoginForm((prev) => ({ ...prev, username: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent bg-gray-50 focus:bg-white transition"
+                placeholder="admin"
+                autoComplete="username"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">סיסמה</label>
+              <input
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent bg-gray-50 focus:bg-white transition"
+                placeholder="******"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+            {loginError && <p className="text-sm text-red-600">{loginError}</p>}
+            <button
+              type="submit"
+              className="w-full bg-brand-blue hover:bg-sky-600 text-white font-bold py-3 rounded-xl shadow-md transition"
+            >
+              כניסה
+            </button>
+          </form>
+          <p className="text-xs text-gray-400 text-center">
+            לצורכי אבטחה אמתית נדרש אימות בצד שרת. כאן ההגנה היא בצד לקוח בלבד.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4 space-y-10">
         <div className="bg-white shadow-md p-6 rounded-2xl border border-gray-200">
-          <div className="flex items-center gap-3 mb-4">
-            <PlusCircle className="text-brand-blue" />
-            <h1 className="text-3xl font-black text-gray-900">ממשק מנהל - חבילות, מלונות ויעדים</h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <PlusCircle className="text-brand-blue" />
+              <h1 className="text-3xl font-black text-gray-900">ממשק מנהל - חבילות, מלונות ויעדים</h1>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg transition"
+            >
+              התנתק
+            </button>
           </div>
           <div className="flex items-start gap-2 text-sm text-gray-600 bg-sky-50 p-3 rounded-xl border border-sky-100">
             <Info size={18} className="text-brand-blue mt-0.5" />
