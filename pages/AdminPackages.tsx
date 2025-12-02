@@ -1,10 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { PlusCircle, Trash2, RefreshCcw, Info } from 'lucide-react';
 import { Destination, Hotel, Package, TripType } from '../types';
-import { loadPackages, savePackages, resetPackagesToDefaults } from '../services/packageStorage';
-import { loadHotels, saveHotels, resetHotelsToDefaults } from '../services/hotelStorage';
-import { loadDestinations, saveDestinations, resetDestinationsToDefaults } from '../services/destinationStorage';
-import { PACKAGES, HOTELS, DESTINATIONS } from '../constants';
+import {
+  fetchPackages,
+  fetchHotels,
+  fetchDestinations,
+  addPackage,
+  addHotel,
+  addDestination,
+  deletePackage,
+  deleteHotel,
+  deleteDestination,
+  resetPackages,
+  resetHotels,
+  resetDestinations,
+} from '../services/supabaseData';
 
 const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined';
 const ADMIN_USER = import.meta.env.VITE_ADMIN_USER || 'admin';
@@ -48,24 +58,35 @@ const AdminPackages: React.FC = () => {
   const [isAuthed, setIsAuthed] = useState<boolean>(() => (isBrowser() ? localStorage.getItem(AUTH_KEY) === '1' : false));
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
-  const [packages, setPackages] = useState<Package[]>(() => loadPackages());
-  const [hotels, setHotels] = useState<Hotel[]>(() => loadHotels());
-  const [destinations, setDestinations] = useState<Destination[]>(() => loadDestinations());
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
   const [packageForm, setPackageForm] = useState<PackageFormState>(emptyPackageForm);
   const [hotelForm, setHotelForm] = useState<HotelFormState>(emptyHotelForm);
   const [destinationForm, setDestinationForm] = useState<DestinationFormState>(emptyDestinationForm);
+  const [isLoading, setIsLoading] = useState(true);
+  const [actionMessage, setActionMessage] = useState('');
+  const [actionError, setActionError] = useState('');
+
+  const loadAll = async () => {
+    setIsLoading(true);
+    setActionError('');
+    try {
+      const [p, h, d] = await Promise.all([fetchPackages(), fetchHotels(), fetchDestinations()]);
+      setPackages(p);
+      setHotels(h);
+      setDestinations(d);
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה בטעינת הנתונים מסופבייס.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    savePackages(packages);
-  }, [packages]);
-
-  useEffect(() => {
-    saveHotels(hotels);
-  }, [hotels]);
-
-  useEffect(() => {
-    saveDestinations(destinations);
-  }, [destinations]);
+    loadAll();
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +118,7 @@ const AdminPackages: React.FC = () => {
     }));
   };
 
-  const handleAddPackage = (e: React.FormEvent) => {
+  const handleAddPackage = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const highlightsArray = packageForm.highlights
@@ -105,28 +126,46 @@ const AdminPackages: React.FC = () => {
       .map((h) => h.trim())
       .filter(Boolean);
 
-    const newPackage: Package = {
-      id: `custom-${Date.now()}`,
-      title: packageForm.title.trim() || 'חבילה חדשה',
-      description: packageForm.description.trim() || 'תיאור יתווסף בהמשך.',
-      priceStart: Number(packageForm.priceStart) || 0,
-      duration: packageForm.duration || '7 ימים',
-      type: packageForm.type,
-      image: packageForm.image.trim() || `https://picsum.photos/seed/${Date.now()}/800/600`,
-      highlights: highlightsArray.length ? highlightsArray : ['פירוט המאפיינים יתווסף בהמשך']
-    };
-
-    setPackages((prev) => [...prev, newPackage]);
-    setPackageForm(emptyPackageForm);
+    try {
+      const created = await addPackage({
+        title: packageForm.title.trim() || 'חבילה חדשה',
+        description: packageForm.description.trim() || 'תיאור יתווסף בהמשך.',
+        priceStart: Number(packageForm.priceStart) || 0,
+        duration: packageForm.duration || '7 ימים',
+        type: packageForm.type,
+        image: packageForm.image.trim() || `https://picsum.photos/seed/${Date.now()}/800/600`,
+        highlights: highlightsArray.length ? highlightsArray : ['פירוט המאפיינים יתווסף בהמשך'],
+      });
+      setPackages((prev) => [...prev, created]);
+      setPackageForm(emptyPackageForm);
+      setActionMessage('חבילה נוספה בהצלחה');
+      setActionError('');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה בהוספת חבילה.');
+    }
   };
 
-  const handleRemovePackage = (id: string) => {
-    setPackages((prev) => prev.filter((pkg) => pkg.id !== id));
+  const handleRemovePackage = async (id: string) => {
+    try {
+      await deletePackage(id);
+      setPackages((prev) => prev.filter((pkg) => pkg.id !== id));
+      setActionMessage('חבילה נמחקה');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה במחיקת חבילה.');
+    }
   };
 
-  const handleResetPackages = () => {
-    setPackages(PACKAGES);
-    resetPackagesToDefaults();
+  const handleResetPackages = async () => {
+    try {
+      const fresh = await resetPackages();
+      setPackages(fresh);
+      setActionMessage('חבילות אופסו לברירת מחדל');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה באיפוס חבילות.');
+    }
   };
 
   const handleHotelChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -138,7 +177,7 @@ const AdminPackages: React.FC = () => {
     }));
   };
 
-  const handleAddHotel = (e: React.FormEvent) => {
+  const handleAddHotel = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const tagsArray = hotelForm.tags
@@ -146,27 +185,45 @@ const AdminPackages: React.FC = () => {
       .map((t) => t.trim())
       .filter(Boolean);
 
-    const newHotel: Hotel = {
-      id: `hotel-${Date.now()}`,
-      name: hotelForm.name.trim() || 'מלון חדש',
-      stars: Math.min(Math.max(Number(hotelForm.stars) || 0, 1), 5),
-      area: hotelForm.area || 'תאילנד',
-      priceLevel: hotelForm.priceLevel || 'בינוני',
-      image: hotelForm.image.trim() || `https://picsum.photos/seed/h${Date.now()}/800/600`,
-      tags: tagsArray.length ? tagsArray : ['מאפיינים יתווספו בהמשך'],
-    };
-
-    setHotels((prev) => [...prev, newHotel]);
-    setHotelForm(emptyHotelForm);
+    try {
+      const created = await addHotel({
+        name: hotelForm.name.trim() || 'מלון חדש',
+        stars: Math.min(Math.max(Number(hotelForm.stars) || 0, 1), 5),
+        area: hotelForm.area || 'תאילנד',
+        priceLevel: hotelForm.priceLevel || 'בינוני',
+        image: hotelForm.image.trim() || `https://picsum.photos/seed/h${Date.now()}/800/600`,
+        tags: tagsArray.length ? tagsArray : ['מאפיינים יתווספו בהמשך'],
+      });
+      setHotels((prev) => [...prev, created]);
+      setHotelForm(emptyHotelForm);
+      setActionMessage('מלון נוסף בהצלחה');
+      setActionError('');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה בהוספת מלון.');
+    }
   };
 
-  const handleRemoveHotel = (id: string) => {
-    setHotels((prev) => prev.filter((hotel) => hotel.id !== id));
+  const handleRemoveHotel = async (id: string) => {
+    try {
+      await deleteHotel(id);
+      setHotels((prev) => prev.filter((hotel) => hotel.id !== id));
+      setActionMessage('מלון נמחק');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה במחיקת מלון.');
+    }
   };
 
-  const handleResetHotels = () => {
-    setHotels(HOTELS);
-    resetHotelsToDefaults();
+  const handleResetHotels = async () => {
+    try {
+      const fresh = await resetHotels();
+      setHotels(fresh);
+      setActionMessage('מלונות אופסו לברירת מחדל');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה באיפוס מלונות.');
+    }
   };
 
   const handleDestinationChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -178,28 +235,46 @@ const AdminPackages: React.FC = () => {
     }));
   };
 
-  const handleAddDestination = (e: React.FormEvent) => {
+  const handleAddDestination = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newDestination: Destination = {
-      id: `dest-${Date.now()}`,
-      name: destinationForm.name.trim() || 'יעד חדש',
-      description: destinationForm.description.trim() || 'תיאור יתווסף בהמשך.',
-      image: destinationForm.image.trim() || `https://picsum.photos/seed/d${Date.now()}/800/600`,
-      season: destinationForm.season || 'כל השנה'
-    };
-
-    setDestinations((prev) => [...prev, newDestination]);
-    setDestinationForm(emptyDestinationForm);
+    try {
+      const created = await addDestination({
+        name: destinationForm.name.trim() || 'יעד חדש',
+        description: destinationForm.description.trim() || 'תיאור יתווסף בהמשך.',
+        image: destinationForm.image.trim() || `https://picsum.photos/seed/d${Date.now()}/800/600`,
+        season: destinationForm.season || 'כל השנה',
+      });
+      setDestinations((prev) => [...prev, created]);
+      setDestinationForm(emptyDestinationForm);
+      setActionMessage('יעד נוסף בהצלחה');
+      setActionError('');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה בהוספת יעד.');
+    }
   };
 
-  const handleRemoveDestination = (id: string) => {
-    setDestinations((prev) => prev.filter((dest) => dest.id !== id));
+  const handleRemoveDestination = async (id: string) => {
+    try {
+      await deleteDestination(id);
+      setDestinations((prev) => prev.filter((dest) => dest.id !== id));
+      setActionMessage('יעד נמחק');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה במחיקת יעד.');
+    }
   };
 
-  const handleResetDestinations = () => {
-    setDestinations(DESTINATIONS);
-    resetDestinationsToDefaults();
+  const handleResetDestinations = async () => {
+    try {
+      const fresh = await resetDestinations();
+      setDestinations(fresh);
+      setActionMessage('יעדים אופסו לברירת מחדל');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה באיפוס יעדים.');
+    }
   };
 
   if (!isAuthed) {
@@ -274,11 +349,13 @@ const AdminPackages: React.FC = () => {
           <div className="flex items-start gap-2 text-sm text-gray-600 bg-sky-50 p-3 rounded-xl border border-sky-100">
             <Info size={18} className="text-brand-blue mt-0.5" />
             <p>
-              שינויים נשמרים מקומית בדפדפן (localStorage). לחיבור אמיתי לשרת יש צורך ב-API מאובטח.
-              ניתן לאפס בכל רגע לחבילות, מלונות ויעדי ברירת המחדל.
+              הנתונים נשמרים בסופבייס. בסביבת פרודקשן מומלץ להפעיל RLS ולהגביל כתיבה למשתמשים מאומתים או דרך API מאובטח.
             </p>
           </div>
         </div>
+        {isLoading && <div className="text-center text-gray-500">טוען נתונים מסופבייס...</div>}
+        {actionError && <div className="text-center text-red-600">{actionError}</div>}
+        {actionMessage && <div className="text-center text-green-600">{actionMessage}</div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <form onSubmit={handleAddPackage} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4">
