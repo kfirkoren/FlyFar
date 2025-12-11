@@ -11,6 +11,7 @@ const mapPackageRow = (row: any): Package => ({
   type: row.type as TripType,
   image: row.image ?? '',
   highlights: row.highlights ?? [],
+  sortOrder: row.sort_order ?? undefined,
 });
 
 const mapHotelRow = (row: any): Hotel => ({
@@ -21,6 +22,7 @@ const mapHotelRow = (row: any): Hotel => ({
   priceLevel: row.price_level ?? '',
   image: row.image ?? '',
   tags: row.tags ?? [],
+  sortOrder: row.sort_order ?? undefined,
 });
 
 const mapDestinationRow = (row: any): Destination => ({
@@ -29,12 +31,14 @@ const mapDestinationRow = (row: any): Destination => ({
   description: row.description ?? '',
   image: row.image ?? '',
   season: row.season ?? '',
+  sortOrder: row.sort_order ?? undefined,
 });
 
 export const fetchPackages = async (): Promise<Package[]> => {
   const { data, error } = await supabase
     .from('packages')
     .select('*')
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []).map(mapPackageRow);
@@ -44,6 +48,7 @@ export const fetchHotels = async (): Promise<Hotel[]> => {
   const { data, error } = await supabase
     .from('hotels')
     .select('*')
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []).map(mapHotelRow);
@@ -53,6 +58,7 @@ export const fetchDestinations = async (): Promise<Destination[]> => {
   const { data, error } = await supabase
     .from('destinations')
     .select('*')
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []).map(mapDestinationRow);
@@ -69,6 +75,7 @@ export const addPackage = async (pkg: Omit<Package, 'id'>): Promise<Package> => 
       type: pkg.type,
       image: pkg.image,
       highlights: pkg.highlights,
+      sort_order: pkg.sortOrder,
     })
     .select('*')
     .single();
@@ -94,11 +101,23 @@ export const resetPackages = async (): Promise<Package[]> => {
         type: pkg.type,
         image: pkg.image,
         highlights: pkg.highlights,
+        sort_order: pkg.sortOrder,
       }))
     )
     .select('*');
   if (error) throw error;
   return (data ?? []).map(mapPackageRow);
+};
+
+export const updatePackageOrder = async (id: string, sortOrder: number) => {
+  const { data, error } = await supabase
+    .from('packages')
+    .update({ sort_order: sortOrder })
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return mapPackageRow(data);
 };
 
 export const addHotel = async (hotel: Omit<Hotel, 'id'>): Promise<Hotel> => {
@@ -111,6 +130,7 @@ export const addHotel = async (hotel: Omit<Hotel, 'id'>): Promise<Hotel> => {
       price_level: hotel.priceLevel,
       image: hotel.image,
       tags: hotel.tags,
+      sort_order: hotel.sortOrder,
     })
     .select('*')
     .single();
@@ -135,6 +155,7 @@ export const resetHotels = async (): Promise<Hotel[]> => {
         price_level: hotel.priceLevel,
         image: hotel.image,
         tags: hotel.tags,
+        sort_order: hotel.sortOrder,
       }))
     )
     .select('*');
@@ -150,6 +171,7 @@ export const addDestination = async (dest: Omit<Destination, 'id'>): Promise<Des
       description: dest.description,
       image: dest.image,
       season: dest.season,
+      sort_order: dest.sortOrder,
     })
     .select('*')
     .single();
@@ -172,9 +194,32 @@ export const resetDestinations = async (): Promise<Destination[]> => {
         description: dest.description,
         image: dest.image,
         season: dest.season,
+        sort_order: dest.sortOrder,
       }))
     )
     .select('*');
   if (error) throw error;
   return (data ?? []).map(mapDestinationRow);
+};
+
+export const updateHotelOrder = async (id: string, sortOrder: number) => {
+  const { data, error } = await supabase
+    .from('hotels')
+    .update({ sort_order: sortOrder })
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return mapHotelRow(data);
+};
+
+export const updateDestinationOrder = async (id: string, sortOrder: number) => {
+  const { data, error } = await supabase
+    .from('destinations')
+    .update({ sort_order: sortOrder })
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return mapDestinationRow(data);
 };

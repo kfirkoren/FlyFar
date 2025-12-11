@@ -14,6 +14,9 @@ import {
   resetPackages,
   resetHotels,
   resetDestinations,
+  updatePackageOrder,
+  updateHotelOrder,
+  updateDestinationOrder,
 } from '../services/supabaseData';
 
 const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined';
@@ -28,7 +31,8 @@ const emptyPackageForm = {
   duration: '7 ימים',
   type: TripType.COUPLES,
   image: '',
-  highlights: ''
+  highlights: '',
+  sortOrder: 999
 };
 
 const emptyHotelForm = {
@@ -37,14 +41,16 @@ const emptyHotelForm = {
   area: '',
   priceLevel: '',
   image: '',
-  tags: ''
+  tags: '',
+  sortOrder: 999
 };
 
 const emptyDestinationForm = {
   name: '',
   description: '',
   image: '',
-  season: ''
+  season: '',
+  sortOrder: 999
 };
 
 type PackageFormState = typeof emptyPackageForm;
@@ -67,15 +73,25 @@ const AdminPackages: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
+  const [sortEdits, setSortEdits] = useState<Record<string, number>>({});
+  const [hotelSortEdits, setHotelSortEdits] = useState<Record<string, number>>({});
+  const [destinationSortEdits, setDestinationSortEdits] = useState<Record<string, number>>({});
+
+  const sortPackagesByOrder = (list: Package[]) =>
+    [...list].sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999));
+  const sortHotelsByOrder = (list: Hotel[]) =>
+    [...list].sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999));
+  const sortDestinationsByOrder = (list: Destination[]) =>
+    [...list].sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999));
 
   const loadAll = async () => {
     setIsLoading(true);
     setActionError('');
     try {
       const [p, h, d] = await Promise.all([fetchPackages(), fetchHotels(), fetchDestinations()]);
-      setPackages(p);
-      setHotels(h);
-      setDestinations(d);
+      setPackages(sortPackagesByOrder(p));
+      setHotels(sortHotelsByOrder(h));
+      setDestinations(sortDestinationsByOrder(d));
     } catch (err) {
       console.error(err);
       setActionError('שגיאה בטעינת הנתונים מסופבייס.');
@@ -114,7 +130,10 @@ const AdminPackages: React.FC = () => {
     const field = name as PackageFormField;
     setPackageForm((prev) => ({
       ...prev,
-      [field]: field === 'priceStart' ? Number(value) : value,
+      [field]:
+        field === 'priceStart' ? Number(value) :
+        field === 'sortOrder' ? Number(value) :
+        value,
     }));
   };
 
@@ -135,8 +154,9 @@ const AdminPackages: React.FC = () => {
         type: packageForm.type,
         image: packageForm.image.trim() || `https://picsum.photos/seed/${Date.now()}/800/600`,
         highlights: highlightsArray.length ? highlightsArray : ['פירוט המאפיינים יתווסף בהמשך'],
+        sortOrder: Number(packageForm.sortOrder) || 999,
       });
-      setPackages((prev) => [...prev, created]);
+      setPackages((prev) => [...prev, created].sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
       setPackageForm(emptyPackageForm);
       setActionMessage('חבילה נוספה בהצלחה');
       setActionError('');
@@ -150,6 +170,11 @@ const AdminPackages: React.FC = () => {
     try {
       await deletePackage(id);
       setPackages((prev) => prev.filter((pkg) => pkg.id !== id));
+      setSortEdits((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setActionMessage('חבילה נמחקה');
     } catch (err) {
       console.error(err);
@@ -160,11 +185,93 @@ const AdminPackages: React.FC = () => {
   const handleResetPackages = async () => {
     try {
       const fresh = await resetPackages();
-      setPackages(fresh);
+      setPackages(fresh.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+      setSortEdits({});
       setActionMessage('חבילות אופסו לברירת מחדל');
     } catch (err) {
       console.error(err);
       setActionError('שגיאה באיפוס חבילות.');
+    }
+  };
+
+  const handleSortChange = (id: string, value: string) => {
+    setSortEdits((prev) => ({ ...prev, [id]: Number(value) }));
+  };
+
+  const handleSaveSort = async (id: string) => {
+    const sortOrder = sortEdits[id];
+    if (sortOrder === undefined || Number.isNaN(sortOrder)) return;
+    try {
+      await updatePackageOrder(id, sortOrder);
+      setPackages((prev) =>
+        [...prev.map((p) => (p.id === id ? { ...p, sortOrder } : p))].sort(
+          (a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)
+        )
+      );
+      setSortEdits((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setActionMessage('סדר עודכן');
+      setActionError('');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה בשמירת הסדר.');
+    }
+  };
+
+  const handleHotelSortChange = (id: string, value: string) => {
+    setHotelSortEdits((prev) => ({ ...prev, [id]: Number(value) }));
+  };
+
+  const handleSaveHotelSort = async (id: string) => {
+    const sortOrder = hotelSortEdits[id];
+    if (sortOrder === undefined || Number.isNaN(sortOrder)) return;
+    try {
+      await updateHotelOrder(id, sortOrder);
+      setHotels((prev) =>
+        sortHotelsByOrder(
+          prev.map((hotel) => (hotel.id === id ? { ...hotel, sortOrder } : hotel))
+        )
+      );
+      setHotelSortEdits((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setActionMessage('סדר עודכן');
+      setActionError('');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה בשמירת הסדר.');
+    }
+  };
+
+  const handleDestinationSortChange = (id: string, value: string) => {
+    setDestinationSortEdits((prev) => ({ ...prev, [id]: Number(value) }));
+  };
+
+  const handleSaveDestinationSort = async (id: string) => {
+    const sortOrder = destinationSortEdits[id];
+    if (sortOrder === undefined || Number.isNaN(sortOrder)) return;
+    try {
+      await updateDestinationOrder(id, sortOrder);
+      setDestinations((prev) =>
+        sortDestinationsByOrder(
+          prev.map((dest) => (dest.id === id ? { ...dest, sortOrder } : dest))
+        )
+      );
+      setDestinationSortEdits((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setActionMessage('סדר עודכן');
+      setActionError('');
+    } catch (err) {
+      console.error(err);
+      setActionError('שגיאה בשמירת הסדר.');
     }
   };
 
@@ -173,7 +280,10 @@ const AdminPackages: React.FC = () => {
     const field = name as HotelFormField;
     setHotelForm((prev) => ({
       ...prev,
-      [field]: field === 'stars' ? Number(value) : value,
+      [field]:
+        field === 'stars' ? Number(value) :
+        field === 'sortOrder' ? Number(value) :
+        value,
     }));
   };
 
@@ -193,8 +303,9 @@ const AdminPackages: React.FC = () => {
         priceLevel: hotelForm.priceLevel || 'בינוני',
         image: hotelForm.image.trim() || `https://picsum.photos/seed/h${Date.now()}/800/600`,
         tags: tagsArray.length ? tagsArray : ['מאפיינים יתווספו בהמשך'],
+        sortOrder: Number(hotelForm.sortOrder) || 999,
       });
-      setHotels((prev) => [...prev, created]);
+      setHotels((prev) => sortHotelsByOrder([...prev, created]));
       setHotelForm(emptyHotelForm);
       setActionMessage('מלון נוסף בהצלחה');
       setActionError('');
@@ -208,6 +319,11 @@ const AdminPackages: React.FC = () => {
     try {
       await deleteHotel(id);
       setHotels((prev) => prev.filter((hotel) => hotel.id !== id));
+      setHotelSortEdits((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setActionMessage('מלון נמחק');
     } catch (err) {
       console.error(err);
@@ -218,7 +334,8 @@ const AdminPackages: React.FC = () => {
   const handleResetHotels = async () => {
     try {
       const fresh = await resetHotels();
-      setHotels(fresh);
+      setHotels(sortHotelsByOrder(fresh));
+      setHotelSortEdits({});
       setActionMessage('מלונות אופסו לברירת מחדל');
     } catch (err) {
       console.error(err);
@@ -231,7 +348,7 @@ const AdminPackages: React.FC = () => {
     const field = name as DestinationFormField;
     setDestinationForm((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: field === 'sortOrder' ? Number(value) : value,
     }));
   };
 
@@ -244,8 +361,9 @@ const AdminPackages: React.FC = () => {
         description: destinationForm.description.trim() || 'תיאור יתווסף בהמשך.',
         image: destinationForm.image.trim() || `https://picsum.photos/seed/d${Date.now()}/800/600`,
         season: destinationForm.season || 'כל השנה',
+        sortOrder: Number(destinationForm.sortOrder) || 999,
       });
-      setDestinations((prev) => [...prev, created]);
+      setDestinations((prev) => sortDestinationsByOrder([...prev, created]));
       setDestinationForm(emptyDestinationForm);
       setActionMessage('יעד נוסף בהצלחה');
       setActionError('');
@@ -259,6 +377,11 @@ const AdminPackages: React.FC = () => {
     try {
       await deleteDestination(id);
       setDestinations((prev) => prev.filter((dest) => dest.id !== id));
+      setDestinationSortEdits((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setActionMessage('יעד נמחק');
     } catch (err) {
       console.error(err);
@@ -269,7 +392,8 @@ const AdminPackages: React.FC = () => {
   const handleResetDestinations = async () => {
     try {
       const fresh = await resetDestinations();
-      setDestinations(fresh);
+      setDestinations(sortDestinationsByOrder(fresh));
+      setDestinationSortEdits({});
       setActionMessage('יעדים אופסו לברירת מחדל');
     } catch (err) {
       console.error(err);
@@ -409,6 +533,18 @@ const AdminPackages: React.FC = () => {
                   placeholder="לדוגמה: 10 ימים"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">סדר תצוגה (מספר נמוך קודם)</label>
+                <input
+                  type="number"
+                  name="sortOrder"
+                  value={packageForm.sortOrder}
+                  onChange={handlePackageChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent bg-gray-50 focus:bg-white transition"
+                  placeholder="לדוגמה: 1"
+                  min={1}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -499,6 +635,23 @@ const AdminPackages: React.FC = () => {
                       </span>
                     ))}
                   </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <label className="text-gray-700">סדר:</label>
+                    <input
+                      type="number"
+                      value={sortEdits[pkg.id] ?? pkg.sortOrder ?? ''}
+                      onChange={(e) => handleSortChange(pkg.id, e.target.value)}
+                      className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-brand-blue focus:border-transparent bg-white"
+                      placeholder="#"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveSort(pkg.id)}
+                      className="text-xs bg-gray-900 hover:bg-brand-blue text-white px-3 py-1 rounded-md transition"
+                    >
+                      שמור סדר
+                    </button>
+                  </div>
                 </div>
               ))}
               {packages.length === 0 && (
@@ -575,6 +728,19 @@ const AdminPackages: React.FC = () => {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">סדר תצוגה (מספר נמוך קודם)</label>
+              <input
+                type="number"
+                name="sortOrder"
+                value={hotelForm.sortOrder}
+                onChange={handleHotelChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent bg-gray-50 focus:bg-white transition"
+                placeholder="לדוגמה: 1"
+                min={1}
+              />
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">תגיות (מופרדות בפסיק)</label>
               <textarea
                 name="tags"
@@ -628,6 +794,23 @@ const AdminPackages: React.FC = () => {
                         {tag}
                       </span>
                     ))}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <label className="text-gray-700">סדר:</label>
+                    <input
+                      type="number"
+                      value={hotelSortEdits[hotel.id] ?? hotel.sortOrder ?? ''}
+                      onChange={(e) => handleHotelSortChange(hotel.id, e.target.value)}
+                      className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-brand-blue focus:border-transparent bg-white"
+                      placeholder="#"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveHotelSort(hotel.id)}
+                      className="text-xs bg-gray-900 hover:bg-brand-blue text-white px-3 py-1 rounded-md transition"
+                    >
+                      שמור סדר
+                    </button>
                   </div>
                 </div>
               ))}
@@ -692,6 +875,19 @@ const AdminPackages: React.FC = () => {
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">סדר תצוגה (מספר נמוך קודם)</label>
+              <input
+                type="number"
+                name="sortOrder"
+                value={destinationForm.sortOrder}
+                onChange={handleDestinationChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent bg-gray-50 focus:bg-white transition"
+                placeholder="לדוגמה: 1"
+                min={1}
+              />
+            </div>
+
             <button
               type="submit"
               className="w-full bg-brand-blue hover:bg-sky-600 text-white font-bold py-3 rounded-xl shadow-md transition"
@@ -728,6 +924,23 @@ const AdminPackages: React.FC = () => {
                     </button>
                   </div>
                   <p className="text-sm text-gray-600">{dest.description}</p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <label className="text-gray-700">סדר:</label>
+                    <input
+                      type="number"
+                      value={destinationSortEdits[dest.id] ?? dest.sortOrder ?? ''}
+                      onChange={(e) => handleDestinationSortChange(dest.id, e.target.value)}
+                      className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-brand-blue focus:border-transparent bg-white"
+                      placeholder="#"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveDestinationSort(dest.id)}
+                      className="text-xs bg-gray-900 hover:bg-brand-blue text-white px-3 py-1 rounded-md transition"
+                    >
+                      שמור סדר
+                    </button>
+                  </div>
                 </div>
               ))}
               {destinations.length === 0 && (

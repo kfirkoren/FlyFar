@@ -14,6 +14,7 @@ export interface Package {
   type: TripType;
   image: string;
   highlights: string[];
+  sortOrder?: number;
 }
 
 export interface Destination {
@@ -22,6 +23,7 @@ export interface Destination {
   description: string;
   image: string;
   season: string;
+  sortOrder?: number;
 }
 
 export interface Hotel {
@@ -32,6 +34,7 @@ export interface Hotel {
   priceLevel: string;
   image: string;
   tags: string[];
+  sortOrder?: number;
 }
 
 export interface FaqItem {

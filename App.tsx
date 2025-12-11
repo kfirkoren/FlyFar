@@ -10,27 +10,43 @@ import Contact from './pages/Contact';
 import Packages from './pages/Packages';
 import AdminPackages from './pages/AdminPackages';
 import Hotels from './pages/Hotels';
+import ScrollToTop from './components/ScrollToTop';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <div className="flex flex-col min-h-screen font-sans">
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/destinations" element={<Destinations />} />
-            <Route path="/packages" element={<Packages />} />
-            <Route path="/hotels" element={<Hotels />} />
-            <Route path="/admin" element={<AdminPackages />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-          </Routes>
-        </main>
-        <Footer />
-        <WhatsAppButton />
-      </div>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <ScrollToTop />
+        <div className="flex flex-col min-h-screen font-sans">
+          <Navbar />
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/destinations" element={<Destinations />} />
+              <Route path="/packages" element={<Packages />} />
+              <Route path="/hotels" element={<Hotels />} />
+              <Route path="/admin" element={<AdminPackages />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+            </Routes>
+          </main>
+          <Footer />
+          <WhatsAppButton />
+        </div>
+      </Router>
+    </QueryClientProvider>
   );
 };
 

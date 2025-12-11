@@ -9,23 +9,45 @@ const ContactForm: React.FC<ContactFormProps> = ({ title = "בואו נתכנן 
     name: '',
     phone: '',
     email: '',
-    type: 'זוגות',
+    type: 'זוגות / ירח דבש',
     dates: '',
     budget: '',
     notes: ''
   });
 
+  const webhookUrl = import.meta.env.VITE_CONTACT_WEBHOOK_URL;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would connect to a CRM or Backend
-    alert("תודה! פנייתך התקבלה, נחזור אליך בהקדם.");
-    setFormData({
-      name: '', phone: '', email: '', type: 'זוגות', dates: '', budget: '', notes: ''
-    });
+
+    if (!webhookUrl) {
+      alert("שגיאה: חסרה כתובת וובהוק (VITE_CONTACT_WEBHOOK_URL)");
+      return;
+    }
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Webhook request failed");
+      }
+
+      alert("תודה! פנייתך התקבלה, נחזור אליך בהקדם.");
+      setFormData({
+        name: '', phone: '', email: '', type: 'זוגות / ירח דבש', dates: '', budget: '', notes: ''
+      });
+    } catch (error) {
+      console.error("Failed to submit contact form", error);
+      alert("מצטערים, לא הצלחנו לשלוח את הטופס. נסה שוב בעוד רגע.");
+    }
   };
 
   return (

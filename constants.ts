@@ -9,7 +9,8 @@ export const PACKAGES: Package[] = [
     duration: '12 ימים',
     type: TripType.COUPLES,
     image: 'https://picsum.photos/id/10/800/600',
-    highlights: ['מלונות יוקרה 5 כוכבים', 'שייט פרטי בשקיעה', 'ספא זוגי']
+    highlights: ['מלונות יוקרה 5 כוכבים', 'שייט פרטי בשקיעה', 'ספא זוגי'],
+    sortOrder: 1
   },
   {
     id: '2',
@@ -19,7 +20,8 @@ export const PACKAGES: Package[] = [
     duration: '14 ימים',
     type: TripType.FAMILIES,
     image: 'https://picsum.photos/id/11/800/600',
-    highlights: ['פארקי מים', 'שמורות פילים', 'ריזורטים ידידותיים לילדים']
+    highlights: ['פארקי מים', 'שמורות פילים', 'ריזורטים ידידותיים לילדים'],
+    sortOrder: 2
   },
   {
     id: '3',
@@ -29,7 +31,8 @@ export const PACKAGES: Package[] = [
     duration: '10 ימים',
     type: TripType.YOUNG,
     image: 'https://picsum.photos/id/15/800/600',
-    highlights: ['מסיבות פול מון בקופנגן', 'צלילה בקוטאו', 'טיולי ג’יפים בצפון']
+    highlights: ['מסיבות פול מון בקופנגן', 'צלילה בקוטאו', 'טיולי ג’יפים בצפון'],
+    sortOrder: 3
   }
 ];
 
@@ -39,28 +42,32 @@ export const DESTINATIONS: Destination[] = [
     name: 'בנגקוק',
     description: 'עיר הבירה התוססת. שווקים, מקדשים וחיי לילה סוערים.',
     image: 'https://picsum.photos/id/48/800/600',
-    season: 'כל השנה (חם ולח)'
+    season: 'כל השנה (חם ולח)',
+    sortOrder: 1
   },
   {
     id: 'north',
     name: 'צפון תאילנד (צ’יאנג מאי)',
     description: 'הרים ירוקים, שבטים מקומיים, מקדשים עתיקים ואווירה רגועה.',
     image: 'https://picsum.photos/id/28/800/600',
-    season: 'נובמבר - פברואר'
+    season: 'נובמבר - פברואר',
+    sortOrder: 2
   },
   {
     id: 'phuket',
     name: 'פוקט',
     description: 'האי הגדול ביותר. חופים מדהימים, חיי לילה וחיי פאר.',
     image: 'https://picsum.photos/id/54/800/600',
-    season: 'נובמבר - אפריל'
+    season: 'נובמבר - אפריל',
+    sortOrder: 3
   },
   {
     id: 'samui',
     name: 'קוסמוי',
     description: 'אי טרופי עם ריזורטים מפנקים, חופים לבנים ועצי קוקוס.',
     image: 'https://picsum.photos/id/57/800/600',
-    season: 'ינואר - אוגוסט'
+    season: 'ינואר - אוגוסט',
+    sortOrder: 4
   }
 ];
 
@@ -72,7 +79,8 @@ export const HOTELS: Hotel[] = [
     area: 'פוקט',
     priceLevel: 'יוקרה',
     image: 'https://picsum.photos/id/164/800/600',
-    tags: ['ירח דבש', 'נוף לים', 'בריכה פרטית']
+    tags: ['ירח דבש', 'נוף לים', 'בריכה פרטית'],
+    sortOrder: 1
   },
   {
     id: 'h2',
@@ -81,7 +89,8 @@ export const HOTELS: Hotel[] = [
     area: 'קוסמוי',
     priceLevel: 'גבוה',
     image: 'https://picsum.photos/id/204/800/600',
-    tags: ['עיצוב מודרני', 'חוף פרטי', 'ספא']
+    tags: ['עיצוב מודרני', 'חוף פרטי', 'ספא'],
+    sortOrder: 2
   },
   {
     id: 'h3',
@@ -90,7 +99,8 @@ export const HOTELS: Hotel[] = [
     area: 'בנגקוק',
     priceLevel: 'בינוני',
     image: 'https://picsum.photos/id/435/800/600',
-    tags: ['מרכז העיר', 'קניות', 'משפחות']
+    tags: ['מרכז העיר', 'קניות', 'משפחות'],
+    sortOrder: 3
   }
 ];
 
@@ -109,6 +119,6 @@ export const FAQS: FaqItem[] = [
   }
 ];
 
-export const CONTACT_PHONE = "050-1234567";
-export const CONTACT_WHATSAPP = "972501234567"; // No dashes for link
+export const CONTACT_PHONE = "053-284-6153";
+export const CONTACT_WHATSAPP = "972532846153"; // No dashes for link
 export const CONTACT_EMAIL = "info@thaitrip.co.il";
